@@ -1,0 +1,65 @@
+Rock-Paper-Scissors game.
+
+Start the game by either debbuing, or run a release of, the RPS solution.
+I've used postman to test the solution
+
+**To start a new game by a player issue a POST to
+https://localhost:44309/api/RPSGame/newgame
+with the body as follows:
+{
+    "PlayerName": "Emelie"
+}
+Returns an id to be used later on for second player to join, making a move, or check status of a game.
+Example of returned Json:
+{
+    "id": "f7ef4fe4-2e2b-49a2-a009-5aacb2bdcf58",
+    "gameStat": "Started",
+    "winner": "TBS",
+    "lPlayer": null
+}
+
+
+**To join a running game is a POST to
+https://localhost:44309/api/RPSGame/{id}/joingame
+where id is the id returned from newgame, and with body as follows:
+{
+    "PlayerName" : "Anna"    
+}
+
+**To check the status of a game issue a GET to 
+https://localhost:44309/api/RPSGame/{id}
+where id is the id returned from newgame
+Example of returned Json, where both player have made a move and a winner is found:
+{
+    "id": "93ff9b9d-6b4a-4f5a-8cc4-2cb160e5d315",
+    "gameStat": "Finshed",
+    "winner": "Anna",
+    "lPlayer": [
+        {
+            "playerName": "Anna",
+            "gameMove": "rock"
+        },
+        {
+            "playerName": "Emelie",
+            "gameMove": "scissors"
+        }
+    ]
+}
+
+To make a move in a game for one player issue a POST to 
+https://localhost:44309/api/RPSGame/{id}/makemove
+where id is the id returned from newgame, and with body as follows:
+{
+    "GameMove" : "rock",
+    "PlayerName" : "Anna"       
+}
+
+To make a move in a game for another player issue a POST to 
+https://localhost:44309/api/RPSGame/{id}/makemove
+where id is the id returned from newgame, and with body as follows:
+{
+    "GameMove" : "scissors",
+    "PlayerName" : "Emmelie"       
+}
+
+
