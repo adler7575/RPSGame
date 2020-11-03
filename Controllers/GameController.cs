@@ -2,23 +2,31 @@
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using RSBgame.Models;
+using Newtonsoft.Json;
+using RPSgame.Messages;
+using RPSgame.Models;
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
-namespace RSBgame.Controllers
+namespace RSPgame.Controllers
 {
     [Produces("application/json")]
     [Route("api/RPSGame")]
     [ApiController]
     public class GameController : ControllerBase
     {
-        public enum GameMoves 
-        { 
-            rock , paper, scissors
+
+        public static Dictionary<Guid, RPSGame> gGameList = null;
+
+        public GameController()
+        {
+            // _GameList will hold all games
+            if (gGameList == null)
+                gGameList = new Dictionary<Guid, RPSGame>();
+            
         }
 
-        public static RSBgame.Models.RPSgame _Game;
-        public static RSBgame.Models.RPSGameDTO _GameDTO;
+
+
         /// <summary>
         /// Start game as player 1. Rerturns Id to be used later on in joining a game, makeing a move in game, or check game status.
         /// Calling sequence:
@@ -32,20 +40,24 @@ namespace RSBgame.Controllers
         /// <returns></returns>
         [HttpPost]
         [Route("newgame")]
-        public RPSGameDTO NewGame(Player player)
+        public object NewGame(Player Player)
         {
-            _Game = new RSBgame.Models.RPSgame();
-            _Game.Id = Guid.NewGuid();
-            _Game.Player1 = new Player();
-            _Game.Player1.PlayerName = player.PlayerName;
-            _Game.Player1.GameMove = "";
-            _GameDTO = new RSBgame.Models.RPSGameDTO();
-            _GameDTO.Id = _Game.Id;
-            _GameDTO.GameStat = GameStatus.Started.ToString();
-            _GameDTO.Winner = "TBS";
-            return _GameDTO;
-        }
+            RPSGame Game;
+            try 
+            {
+                Game = new RPSGame(new Player(Player.PlayerName));
+                gGameList.Add(Game.Id, Game);
+            }
+            catch (Exception err)
+            {
+                ErrMessage errM = new ErrMessage("Something went wrong when creating the game.", err.Message, err);
+                return JsonConvert.SerializeObject(BadRequest(errM));
+            }
 
+            return Ok(new IdMessage(Game.Id));
+            
+        }
+     
         /// <summary>
         /// Check status of current game and returns winner if anyone won yet.
         /// Calling sequence:
@@ -55,53 +67,29 @@ namespace RSBgame.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("{Id}")]
-        public RPSGameDTO GetStatus(Guid Id)
+        public object GetStatus(Guid Id)
         {
-            // Sanity checks
-            if (_Game == null)
-            {
-               _GameDTO.GameStat = GameStatus.NotStarted.ToString();
-               return _GameDTO;
-            }
 
-            if (Id != _Game.Id)
-            {
-               _GameDTO.GameStat = GameStatus.NoSuchGame.ToString();
-               return _GameDTO;
-            }
+            try { 
+                RPSGame Game;
+                Game  = gGameList[Id];
+                RPSGameDTO GameDTO = new RPSGameDTO(Game.Id);
 
-            if (_Game.Player2 == null)
-            {
-                _GameDTO.GameStat = GameStatus.Started.ToString();
-                return _GameDTO;
-            }           
-            if (_Game.Player1.GameMove == "" || _Game.Player2.GameMove == "")
-            {
-                _GameDTO.GameStat = GameStatus.WaitMoves.ToString();
-                return _GameDTO;
-            }
-            _GameDTO.GameStat = GameStatus.Finshed.ToString();
-            // Check for draw
-            if (_Game.Player1.GameMove == _Game.Player2.GameMove)
-            {
-                _GameDTO.Winner = "Draw";
-                _GameDTO.lPlayer = new List<Player> { _Game.Player1, _Game.Player2 };
-                return _GameDTO;
-            }
-            // Rock wins over scissors
-            // Scissors wins over paper
-            // Paper wins over rock
-            if (_Game.Player1.GameMove == GameMoves.rock.ToString() && _Game.Player2.GameMove == GameMoves.scissors.ToString())
-                _GameDTO.Winner = _Game.Player1.PlayerName;            
-            else if (_Game.Player1.GameMove == GameMoves.scissors.ToString() && _Game.Player2.GameMove == GameMoves.paper.ToString())
-                _GameDTO.Winner = _Game.Player1.PlayerName;
-            else if (_Game.Player1.GameMove == GameMoves.paper.ToString() && _Game.Player2.GameMove == GameMoves.rock.ToString())
-                _GameDTO.Winner = _Game.Player1.PlayerName;
-            else
-                _GameDTO.Winner = _Game.Player2.PlayerName;
-            _GameDTO.lPlayer = new List<Player> { _Game.Player1, _Game.Player2 };
 
-            return _GameDTO;
+                if (Game.IsFinished)
+                { 
+                    GameDTO.Winner = Game.GetWinner();
+                    GameDTO.lPlayer = new List<Player> { Game.Player1, Game.Player2 };
+                }
+                GameDTO.GameStat = Game.Status.ToString();
+
+                return Ok(GameDTO);
+            }
+            catch (Exception err)
+            {
+                ErrMessage errM = new ErrMessage("Something went wrong when quuering status.", err.Message, err);
+                return BadRequest(errM);
+            }
         }
 
 
@@ -120,30 +108,23 @@ namespace RSBgame.Controllers
         /// <returns></returns>
         [HttpPost]
         [Route("{id}/joingame")]
-        public object Joingame(Guid Id, Player player)
+        public object Joingame(Guid Id, Player Player)
         {
-            // Sanity checks
-            if (_Game != null && _Game.Id == Id)
+            try
             {
-                // Check that the name is not already taken
-                if (_Game.Player1.PlayerName == player.PlayerName)
-                {
-                    _GameDTO.GameStat = GameStatus.PlayerNotUnique.ToString();
-                    return _GameDTO;
-                }
+                RPSGame Game = gGameList[Id];
+                Game.Addplayer(Player.PlayerName);
 
-                _GameDTO.GameStat = GameStatus.Player2Joined.ToString();
-                _Game.Player2 = new Player();
-
-                _Game.Player2.PlayerName = player.PlayerName;
-                _Game.Player2.GameMove = "";
-                return _Game.Player2;
+                RPSGameDTO GameDTO = new RPSGameDTO(Game.Id);
+                GameDTO.GameStat = Game.Status.ToString();
+                return GameDTO; 
             }
-            else
+            catch (Exception err)
             {
-                _GameDTO.GameStat = GameStatus.NoSuchGame.ToString();
+                ErrMessage errM= new ErrMessage("Something went wrong when player2 tried to join the game.", err.Message, err) ;
+                return BadRequest(errM);
             }
-            return _GameDTO;
+
         }
 
         /// <summary>
@@ -163,60 +144,26 @@ namespace RSBgame.Controllers
         [Route("{id}/makemove")]        
         public object Move(Guid Id, Player player)
         {
-            // Sanity checks
-            if (_Game != null && _Game.Id != Id && _Game.Player1 != null)
-            { 
-                _GameDTO.GameStat = GameStatus.NotStarted.ToString();
-                return _GameDTO;
-            }
-            // Have player2 joined?
-            if (_Game.Player2 == null)
+            try
             {
-                _GameDTO.GameStat = GameStatus.WaitingPlayer2.ToString();
-                return _GameDTO;
-            }
-            string _move = player.GameMove.ToLower();
-            // Sanity check
-            if (!(_move == GameMoves.paper.ToString() || _move == GameMoves.scissors.ToString() || _move == GameMoves.rock.ToString()))
-            {
-                _GameDTO.GameStat = GameStatus.NoSuchMove.ToString();
-                return _GameDTO;
-            }
-                
+                RPSGame Game = gGameList[Id];
+                Game.MameMove(player);
 
-            if (!(player.PlayerName == _Game.Player1.PlayerName || player.PlayerName == _Game.Player2.PlayerName))
+                RPSGameDTO GameDTO = new RPSGameDTO(Game.Id);
+                GameDTO.GameStat = Game.Status.ToString();
+                if (Game.IsFinished)
+                { 
+                    GameDTO.Winner = Game.GetWinner();
+                    GameDTO.lPlayer = new List<Player> { Game.Player1, Game.Player2 };
+                }
+                return GameDTO;
+            }
+            catch (Exception err)
             {
-                _GameDTO.GameStat = GameStatus.NoSuchPlayer.ToString();
-                return _GameDTO;
+                ErrMessage errM = new ErrMessage("Something went wrong when player " + player.PlayerName + " tried to make a move.", err.Message, err);
+                return BadRequest(errM);
             }
 
-            if (player.PlayerName == _Game.Player1.PlayerName)
-            {
-                if (_Game.Player1.GameMove == "")
-                {
-                    _GameDTO.GameStat = GameStatus.PlayerOneMoved.ToString();
-                    _Game.Player1.GameMove = _move;
-                    return _Game.Player1;
-                }
-                else
-                {
-                    _GameDTO.GameStat = GameStatus.PlayerAlreadyMoved.ToString();
-                }
-            }
-            else
-            {
-                if (_Game.Player2.GameMove == "")
-                {
-                    _GameDTO.GameStat = GameStatus.PlayerTwoMoved.ToString();
-                    _Game.Player2.GameMove = _move;
-                     return _Game.Player2;
-                }
-                else
-                {
-                    _GameDTO.GameStat = GameStatus.PlayerAlreadyMoved.ToString();
-                }
-            }
-            return _GameDTO;
         }
 
     }

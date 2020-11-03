@@ -1,14 +1,47 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace RSBgame.Models
+namespace RPSgame.Models
 {
     public class Player
     {
+        public enum GameMoves
+        {
+            rock, paper, scissors
+        }
+
+        public Player()
+        {
+        }
+
+        public Player(string playerName)
+        {
+            if (playerName == "")
+                throw new Exception("Empty player names not accpterd");
+            PlayerName = playerName;            
+        }
+
+
         public string PlayerName { get; set; }
 
-        public string GameMove { get; set; }
+        private string gamemove;
+        public string GameMove { 
+            get
+            { 
+                return gamemove; 
+            }
+            set
+            {
+                if (value == null || value == GameMoves.paper.ToString() || value == GameMoves.scissors.ToString() || value == GameMoves.rock.ToString())
+                {
+                    gamemove = value;
+                }
+                else
+                {
+                    throw new Exception("Unsupported move");
+                } 
+
+            }
+        }
+
     }
 }
