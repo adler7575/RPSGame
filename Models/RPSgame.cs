@@ -14,6 +14,8 @@ namespace RPSgame.Models
 
         public RPSGame(Player player)
         {
+            if (player.PlayerName == null || player.PlayerName == "")
+                throw new Exception("Player name cannot be empty or null");
             Id = Guid.NewGuid();
             Winner = "";            
             Player1 = new Player(player.PlayerName);

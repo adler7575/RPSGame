@@ -16,7 +16,7 @@ namespace RPSgame.Models
         public Player(string playerName)
         {
             if (playerName == "")
-                throw new Exception("Empty player names not accpterd");
+                throw new Exception("Empty player name is not accepted");
             PlayerName = playerName;            
         }
 

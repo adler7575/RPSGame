@@ -51,7 +51,7 @@ namespace RSPgame.Controllers
             catch (Exception err)
             {
                 ErrMessage errM = new ErrMessage("Something went wrong when creating the game.", err.Message, err);
-                return JsonConvert.SerializeObject(BadRequest(errM));
+                return BadRequest(errM);
             }
 
             return Ok(new IdMessage(Game.Id));
@@ -83,7 +83,7 @@ namespace RSPgame.Controllers
                 }
                 GameDTO.GameStat = Game.Status.ToString();
 
-                return Ok(GameDTO);
+                return GameDTO;
             }
             catch (Exception err)
             {
