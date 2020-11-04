@@ -1,7 +1,8 @@
 Rock-Paper-Scissors game.
 
 Start the game by either debbuing, or run a release of, the RPS solution.
-I've used postman to test the solution
+I've used postman to test the solution and also included a set of unittests that 
+can be executed by opening the solution under RPSGame and select Test->Run All Tests
 
 **To start a new game by a player issue a POST to
 https://localhost:44309/api/RPSGame/newgame
@@ -46,7 +47,7 @@ Example of returned Json, where both player have made a move and a winner is fou
     ]
 }
 
-To make a move in a game for one player issue a POST to 
+**To make a move in a game for one player issue a POST to 
 https://localhost:44309/api/RPSGame/{id}/makemove
 where id is the id returned from newgame, and with body as follows:
 {
@@ -54,7 +55,7 @@ where id is the id returned from newgame, and with body as follows:
     "PlayerName" : "Anna"       
 }
 
-To make a move in a game for another player issue a POST to 
+**To make a move in a game for another player issue a POST to 
 https://localhost:44309/api/RPSGame/{id}/makemove
 where id is the id returned from newgame, and with body as follows:
 {
